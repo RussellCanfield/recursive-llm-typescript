@@ -12,6 +12,11 @@ TypeScript monorepo implementation of Recursive Language Models with optional La
 - Initialize an adapter and pass it into the core RLM instance.
 - Use `acomplete` for async usage or `complete` for sync (blocking) usage.
 
+## Python library reference
+- This project ports the original Python package: https://github.com/ysz/recursive-llm
+- Core ideas: store context outside the prompt, use a REPL to explore, and recurse over sub-contexts to avoid context rot.
+- Python features mirrored here: FINAL/FINAL_VAR parsing, max depth/iteration controls, and REPL-driven exploration.
+
 ## Development
 - `bun run build`
 - `bun run test`
