@@ -1,0 +1,65 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "recursive-llm-typescript",
+      "devDependencies": {
+        "@types/node": "^22.10.2",
+        "typescript": "^5.5.4",
+      },
+    },
+    "packages/adapters": {
+      "name": "@rlm/adapters",
+      "version": "0.0.1",
+      "dependencies": {
+        "@rlm/core": "workspace:*",
+      },
+    },
+    "packages/core": {
+      "name": "@rlm/core",
+      "version": "0.0.1",
+      "dependencies": {
+        "@rlm/sandbox": "workspace:*",
+      },
+    },
+    "packages/integrations": {
+      "name": "@rlm/integrations",
+      "version": "0.0.1",
+      "dependencies": {
+        "@rlm/core": "workspace:*",
+      },
+      "peerDependencies": {
+        "@langchain/core": "*",
+        "@langchain/langgraph": "*",
+        "deepagents": "*",
+        "langchain": "*",
+      },
+      "optionalPeers": [
+        "@langchain/core",
+        "@langchain/langgraph",
+        "deepagents",
+        "langchain",
+      ],
+    },
+    "packages/sandbox": {
+      "name": "@rlm/sandbox",
+      "version": "0.0.1",
+    },
+  },
+  "packages": {
+    "@rlm/adapters": ["@rlm/adapters@workspace:packages/adapters"],
+
+    "@rlm/core": ["@rlm/core@workspace:packages/core"],
+
+    "@rlm/integrations": ["@rlm/integrations@workspace:packages/integrations"],
+
+    "@rlm/sandbox": ["@rlm/sandbox@workspace:packages/sandbox"],
+
+    "@types/node": ["@types/node@22.19.10", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-tF5VOugLS/EuDlTBijk0MqABfP8UxgYazTLo3uIn3b4yJgg26QRbVYJYsDtHrjdDUIRfP70+VfhTTc+CE1yskw=="],
+
+    "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
+  }
+}

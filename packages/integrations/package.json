@@ -1,0 +1,41 @@
+{
+  "name": "@rlm/integrations",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "bun test",
+    "lint": "echo \"lint integrations\""
+  },
+  "dependencies": {
+    "@rlm/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "@langchain/core": "*",
+    "@langchain/langgraph": "*",
+    "langchain": "*",
+    "deepagents": "*"
+  },
+  "peerDependenciesMeta": {
+    "@langchain/core": {
+      "optional": true
+    },
+    "@langchain/langgraph": {
+      "optional": true
+    },
+    "langchain": {
+      "optional": true
+    },
+    "deepagents": {
+      "optional": true
+    }
+  }
+}

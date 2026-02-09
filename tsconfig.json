@@ -1,0 +1,9 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/sandbox" },
+    { "path": "packages/core" },
+    { "path": "packages/adapters" },
+    { "path": "packages/integrations" }
+  ]
+}
