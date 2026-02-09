@@ -10,3 +10,4 @@ LLM provider adapters for RLM.
 
 ## Notes
 - The adapter expects OpenAI-compatible `/chat/completions` endpoints.
+- Internal request fields (e.g., `timeoutMs`) are filtered out before sending.

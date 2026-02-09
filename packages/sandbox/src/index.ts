@@ -100,6 +100,31 @@ const buildSafeGlobals = (env: Record<string, unknown>, output: string[]) => {
   return sandbox;
 };
 
+const syncNewGlobalsFromIsolate = async (
+  context: import("isolated-vm").Context,
+  env: Record<string, unknown>,
+  safeGlobalKeys: Set<string>,
+) => {
+  let globalKeys: string[] = [];
+  try {
+    globalKeys = (await context.eval("Object.getOwnPropertyNames(globalThis)", {
+      copy: true,
+    })) as string[];
+  } catch {
+    return;
+  }
+
+  const newKeys = globalKeys.filter((key) => !safeGlobalKeys.has(key));
+  for (const key of newKeys) {
+    try {
+      const value = await context.eval(`globalThis[${JSON.stringify(key)}]`, { copy: true });
+      env[key] = value;
+    } catch {
+      // ignore values that cannot be copied
+    }
+  }
+};
+
 const tryIsolatedVmExecute = async (
   code: string,
   env: Record<string, unknown>,
@@ -115,6 +140,7 @@ const tryIsolatedVmExecute = async (
 
   const output: string[] = [];
   const safeGlobals = buildSafeGlobals(env, output);
+  const safeGlobalKeys = new Set(Object.keys(safeGlobals));
   const isolate = new isolatedVm.Isolate({ memoryLimit: options.memoryLimitMb });
   const context = await isolate.createContext();
   const jail = context.global;
@@ -133,6 +159,7 @@ const tryIsolatedVmExecute = async (
   const script = await isolate.compileScript(code);
   try {
     await script.run(context, { timeout: options.timeoutMs });
+    await syncNewGlobalsFromIsolate(context, env, safeGlobalKeys);
   } catch (error) {
     output.push(`Error: ${error instanceof Error ? error.message : String(error)}`);
   } finally {
@@ -194,7 +221,8 @@ export const createExecutor = (options: SandboxOptions = {}): SandboxExecutor =>
         return "No code to execute";
       }
 
-      if (preferIsolatedVm && !forceVm) {
+      const hasRecursiveLlm = typeof env.recursive_llm === "function";
+      if (preferIsolatedVm && !forceVm && !hasRecursiveLlm) {
         const isolatedResult = await tryIsolatedVmExecute(code, env, {
           timeoutMs,
           maxOutputChars,

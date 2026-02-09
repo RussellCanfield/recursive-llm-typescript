@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { createExecutor } from "@rlm/sandbox";
-import { MaxDepthError, MaxIterationsError, RLM } from "../src/rlm";
+import { MaxDepthError, MaxIterationsError, RLM, RLMError } from "../src/rlm";
 import type { LLMClient, LLMRequest } from "../src/types";
 
 const executor = createExecutor({ forceVm: true });
@@ -68,5 +68,11 @@ describe("RLM core", () => {
     const rlm = new RLM({ client, model: "expensive", recursiveModel: "cheap" }, executor);
     await rlm.acomplete("Test", "Context");
     expect(client.calls[0]?.model).toBe("expensive");
+  });
+
+  test("complete throws with guidance", () => {
+    const client = new MockClient(["FINAL(\"Answer\")"]);
+    const rlm = new RLM({ client, model: "test-model" }, executor);
+    expect(() => rlm.complete("Test", "Context")).toThrow(RLMError);
   });
 });

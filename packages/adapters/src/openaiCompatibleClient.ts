@@ -34,10 +34,34 @@ export class OpenAICompatibleClient implements LLMClient {
     }
 
     const { model, messages, apiKey: _apiKey, baseUrl: _baseUrl, ...rest } = request;
+    const allowedKeys = new Set([
+      "temperature",
+      "top_p",
+      "max_tokens",
+      "stop",
+      "stream",
+      "presence_penalty",
+      "frequency_penalty",
+      "logit_bias",
+      "response_format",
+      "seed",
+      "user",
+      "tools",
+      "tool_choice",
+      "n",
+    ]);
+
+    const filtered: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(rest)) {
+      if (allowedKeys.has(key)) {
+        filtered[key] = value;
+      }
+    }
+
     const body = {
       model,
       messages,
-      ...rest,
+      ...filtered,
     } as Record<string, unknown>;
 
     try {

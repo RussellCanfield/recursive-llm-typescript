@@ -5,11 +5,16 @@ const originalFetch = globalThis.fetch;
 
 describe("OpenAICompatibleClient", () => {
   test("parses content from response", async () => {
-    globalThis.fetch = (async () =>
-      new Response(
+    let requestBody: Record<string, unknown> | null = null;
+    globalThis.fetch = (async (_input, init) => {
+      if (init?.body) {
+        requestBody = JSON.parse(init.body as string) as Record<string, unknown>;
+      }
+      return new Response(
         JSON.stringify({ choices: [{ message: { content: "Hello" } }] }),
         { status: 200, headers: { "content-type": "application/json" } },
-      )) as typeof fetch;
+      );
+    }) as typeof fetch;
 
     const client = new OpenAICompatibleClient({ apiKey: "test" });
     const result = await client.complete({

@@ -10,7 +10,7 @@ Core Recursive Language Model (RLM) engine.
 
 ## Usage
 - Instantiate `RLM` with an `LLMClient` from `@rlm/adapters`.
-- Use `acomplete` for async or `complete` for sync execution.
+- Use `acomplete` for async execution. `complete()` is disabled to avoid deadlocks.
 
 ## Notes
 - The REPL environment is provided by `@rlm/sandbox`.

@@ -19,4 +19,11 @@ describe("sandbox executor", () => {
     expect(output.length).toBeGreaterThan(0);
     expect(output).toContain("Output truncated");
   });
+
+  test("syncs new globals for FINAL_VAR", async () => {
+    const executor = createExecutor({ preferIsolatedVm: true });
+    const env: Record<string, unknown> = {};
+    await executor.execute("globalThis.result = 'Synced'", env);
+    expect(env.result).toBe("Synced");
+  });
 });

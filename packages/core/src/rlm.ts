@@ -39,30 +39,9 @@ export class RLM {
   }
 
   complete(query = "", context = "", overrides: Record<string, unknown> = {}): string {
-    const sab = new SharedArrayBuffer(4);
-    const int32 = new Int32Array(sab);
-    let result: string | null = null;
-    let error: unknown;
-
-    this.acomplete(query, context, overrides)
-      .then((value) => {
-        result = value;
-        Atomics.store(int32, 0, 1);
-        Atomics.notify(int32, 0);
-      })
-      .catch((err) => {
-        error = err;
-        Atomics.store(int32, 0, 1);
-        Atomics.notify(int32, 0);
-      });
-
-    Atomics.wait(int32, 0, 0);
-
-    if (error) {
-      throw error;
-    }
-
-    return result ?? "";
+    throw new RLMError(
+      "RLM.complete() is not supported in JavaScript runtimes because it can deadlock. Use acomplete() instead.",
+    );
   }
 
   async acomplete(query = "", context = "", overrides: Record<string, unknown> = {}): Promise<string> {

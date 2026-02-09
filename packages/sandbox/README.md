@@ -12,3 +12,5 @@ Sandboxed JavaScript execution for RLM.
 
 ## Notes
 - Install `isolated-vm` separately for stronger isolation.
+- When `recursive_llm` is present in the environment, the executor falls back to Node's `vm` to ensure async recursion works.
+- Globals created during execution (for example, `globalThis.result` for `FINAL_VAR`) are synced back to the host environment.
