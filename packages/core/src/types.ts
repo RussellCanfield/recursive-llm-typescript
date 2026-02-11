@@ -23,6 +23,29 @@ export interface LLMClient {
   complete(request: LLMRequest): Promise<LLMResponse>;
 }
 
+export type OversizeMode = "truncate_head_tail" | "error";
+
+export type IngestionConfig = {
+  maxContextChars?: number;
+  oversizeMode?: OversizeMode;
+};
+
+export type IngestionMetadata = {
+  originalChars: number;
+  retainedChars: number;
+  truncated: boolean;
+  oversizeMode: OversizeMode;
+};
+
+export type PromptBuilderInput = {
+  query: string;
+  contextSize: number;
+  depth: number;
+  ingestion: IngestionMetadata;
+};
+
+export type PromptBuilder = (input: PromptBuilderInput) => Message[];
+
 export type RLMConfig = {
   model: string;
   recursiveModel?: string;
@@ -31,6 +54,8 @@ export type RLMConfig = {
   maxDepth?: number;
   maxIterations?: number;
   llmOptions?: Record<string, unknown>;
+  ingestion?: IngestionConfig;
+  promptBuilder?: PromptBuilder;
   client: LLMClient;
 };
 

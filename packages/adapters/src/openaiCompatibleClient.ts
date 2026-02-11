@@ -33,35 +33,12 @@ export class OpenAICompatibleClient implements LLMClient {
       headers.authorization = `Bearer ${apiKey}`;
     }
 
-    const { model, messages, apiKey: _apiKey, baseUrl: _baseUrl, ...rest } = request;
-    const allowedKeys = new Set([
-      "temperature",
-      "top_p",
-      "max_tokens",
-      "stop",
-      "stream",
-      "presence_penalty",
-      "frequency_penalty",
-      "logit_bias",
-      "response_format",
-      "seed",
-      "user",
-      "tools",
-      "tool_choice",
-      "n",
-    ]);
-
-    const filtered: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(rest)) {
-      if (allowedKeys.has(key)) {
-        filtered[key] = value;
-      }
-    }
+    const { model, messages, apiKey: _apiKey, baseUrl: _baseUrl, timeoutMs: _timeoutMs, ...rest } = request;
 
     const body = {
       model,
       messages,
-      ...filtered,
+      ...rest,
     } as Record<string, unknown>;
 
     try {
@@ -79,10 +56,20 @@ export class OpenAICompatibleClient implements LLMClient {
 
       const data = await response.json();
       const content = data?.choices?.[0]?.message?.content;
-      if (typeof content !== "string") {
-        throw new Error("LLM response missing content");
+      if (typeof content === "string") {
+        return { content };
       }
-      return { content };
+      if (Array.isArray(content)) {
+        const text = content
+          .filter((part): part is { type?: string; text?: string } => typeof part === "object" && part !== null)
+          .filter((part) => part.type === "text" && typeof part.text === "string")
+          .map((part) => part.text as string)
+          .join("");
+        if (text) {
+          return { content: text };
+        }
+      }
+      throw new Error("LLM response missing content");
     } finally {
       if (timeout) {
         clearTimeout(timeout);

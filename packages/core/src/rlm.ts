@@ -1,14 +1,26 @@
 import { createExecutor, SandboxExecutor } from "@rlm/sandbox";
 import { buildSystemPrompt, buildUserPrompt } from "./prompts";
 import { isFinal, parseResponse } from "./parser";
-import type { LLMClient, Message, RLMConfig, RLMStats, REPLEnvironment } from "./types";
+import type {
+  IngestionMetadata,
+  LLMClient,
+  Message,
+  OversizeMode,
+  PromptBuilder,
+  RLMConfig,
+  RLMStats,
+  REPLEnvironment,
+} from "./types";
 
 export class RLMError extends Error {}
 export class MaxIterationsError extends RLMError {}
 export class MaxDepthError extends RLMError {}
+export class ContextTooLargeError extends RLMError {}
 
 const DEFAULT_MAX_DEPTH = 5;
 const DEFAULT_MAX_ITERATIONS = 30;
+const DEFAULT_MAX_CONTEXT_CHARS = 100_000;
+const DEFAULT_OVERSIZE_MODE: OversizeMode = "truncate_head_tail";
 
 export class RLM {
   private readonly client: LLMClient;
@@ -19,6 +31,9 @@ export class RLM {
   private readonly maxDepth: number;
   private readonly maxIterations: number;
   private readonly llmOptions: Record<string, unknown>;
+  private readonly maxContextChars: number;
+  private readonly oversizeMode: OversizeMode;
+  private readonly promptBuilder?: PromptBuilder;
   private readonly executor: SandboxExecutor;
   private readonly currentDepth: number;
 
@@ -34,6 +49,9 @@ export class RLM {
     this.maxDepth = config.maxDepth ?? DEFAULT_MAX_DEPTH;
     this.maxIterations = config.maxIterations ?? DEFAULT_MAX_ITERATIONS;
     this.llmOptions = config.llmOptions ?? {};
+    this.maxContextChars = config.ingestion?.maxContextChars ?? DEFAULT_MAX_CONTEXT_CHARS;
+    this.oversizeMode = config.ingestion?.oversizeMode ?? DEFAULT_OVERSIZE_MODE;
+    this.promptBuilder = config.promptBuilder;
     this.executor = executor ?? createExecutor();
     this.currentDepth = currentDepth;
   }
@@ -54,12 +72,9 @@ export class RLM {
       throw new MaxDepthError(`Max recursion depth (${this.maxDepth}) exceeded`);
     }
 
-    const replEnv = this.buildReplEnv(query, context);
-    const systemPrompt = buildSystemPrompt(context.length, this.currentDepth);
-    const messages: Message[] = [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: buildUserPrompt(query) },
-    ];
+    const prepared = this.prepareContext(context);
+    const replEnv = this.buildReplEnv(query, prepared.context);
+    const messages = this.buildMessages(query, prepared.context.length, prepared.ingestion);
 
     for (let iteration = 0; iteration < this.maxIterations; iteration += 1) {
       this.iterations = iteration + 1;
@@ -102,6 +117,23 @@ export class RLM {
     return response.content;
   }
 
+  private buildMessages(query: string, contextSize: number, ingestion: IngestionMetadata): Message[] {
+    if (this.promptBuilder) {
+      return this.promptBuilder({
+        query,
+        contextSize,
+        depth: this.currentDepth,
+        ingestion,
+      });
+    }
+
+    const systemPrompt = buildSystemPrompt(contextSize, this.currentDepth, ingestion);
+    return [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: buildUserPrompt(query) },
+    ];
+  }
+
   private buildReplEnv(query: string, context: string): REPLEnvironment {
     const re = {
       findAll: (pattern: string, text: string, flags = "g") => {
@@ -124,6 +156,42 @@ export class RLM {
     };
   }
 
+  private prepareContext(context: string): { context: string; ingestion: IngestionMetadata } {
+    const originalChars = context.length;
+
+    if (originalChars <= this.maxContextChars) {
+      return {
+        context,
+        ingestion: {
+          originalChars,
+          retainedChars: originalChars,
+          truncated: false,
+          oversizeMode: this.oversizeMode,
+        },
+      };
+    }
+
+    if (this.oversizeMode === "error") {
+      throw new ContextTooLargeError(
+        `Context too large (${originalChars} chars); max is ${this.maxContextChars}`,
+      );
+    }
+
+    const headLength = Math.floor(this.maxContextChars / 2);
+    const tailLength = this.maxContextChars - headLength;
+    const retained = `${context.slice(0, headLength)}${context.slice(-tailLength)}`;
+
+    return {
+      context: retained,
+      ingestion: {
+        originalChars,
+        retainedChars: retained.length,
+        truncated: true,
+        oversizeMode: this.oversizeMode,
+      },
+    };
+  }
+
   private makeRecursiveFn() {
     return async (subQuery: string, subContext: string): Promise<string> => {
       if (this.currentDepth + 1 >= this.maxDepth) {
@@ -139,6 +207,10 @@ export class RLM {
           maxDepth: this.maxDepth,
           maxIterations: this.maxIterations,
           llmOptions: this.llmOptions,
+          ingestion: {
+            maxContextChars: this.maxContextChars,
+            oversizeMode: this.oversizeMode,
+          },
         },
         this.executor,
         this.currentDepth + 1,

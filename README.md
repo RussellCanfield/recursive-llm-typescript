@@ -16,6 +16,8 @@ TypeScript monorepo implementation of Recursive Language Models with optional La
 - This project ports the original Python package: https://github.com/ysz/recursive-llm
 - Core ideas: store context outside the prompt, use a REPL to explore, and recurse over sub-contexts to avoid context rot.
 - Python features mirrored here: FINAL/FINAL_VAR parsing, max depth/iteration controls, and REPL-driven exploration.
+- Large-context objective: ingestion controls are configured at `@rlm/core` (`RLMConfig.ingestion`) and applied before adapter transport.
+- Integrations objective (v1 parity): DeepAgents supports `query`, `context`, and optional `contextRef` resolution; per-call ingestion overrides are deferred.
 
 ## Development
 - `bun run build`

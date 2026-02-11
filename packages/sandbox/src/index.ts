@@ -100,6 +100,11 @@ const buildSafeGlobals = (env: Record<string, unknown>, output: string[]) => {
   return sandbox;
 };
 
+type IsolatedVmEvalOptions = {
+  timeout?: number;
+  copy?: boolean;
+};
+
 const syncNewGlobalsFromIsolate = async (
   context: import("isolated-vm").Context,
   env: Record<string, unknown>,
@@ -109,7 +114,7 @@ const syncNewGlobalsFromIsolate = async (
   try {
     globalKeys = (await context.eval("Object.getOwnPropertyNames(globalThis)", {
       copy: true,
-    })) as string[];
+    } as IsolatedVmEvalOptions)) as string[];
   } catch {
     return;
   }
@@ -117,7 +122,9 @@ const syncNewGlobalsFromIsolate = async (
   const newKeys = globalKeys.filter((key) => !safeGlobalKeys.has(key));
   for (const key of newKeys) {
     try {
-      const value = await context.eval(`globalThis[${JSON.stringify(key)}]`, { copy: true });
+      const value = await context.eval(`globalThis[${JSON.stringify(key)}]`, {
+        copy: true,
+      } as IsolatedVmEvalOptions);
       env[key] = value;
     } catch {
       // ignore values that cannot be copied

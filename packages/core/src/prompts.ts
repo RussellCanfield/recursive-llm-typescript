@@ -1,4 +1,6 @@
-export const buildSystemPrompt = (contextSize: number, depth = 0): string => {
+import type { IngestionMetadata } from "./types";
+
+export const buildSystemPrompt = (contextSize: number, depth = 0, ingestion?: IngestionMetadata): string => {
   return `You are a Recursive Language Model. You interact with context through a JavaScript REPL environment.
 
 The context is stored in variable \`context\` (not in this prompt). Size: ${contextSize.toLocaleString()} characters.
@@ -24,7 +26,12 @@ CRITICAL: Do NOT guess or make up answers. You MUST search the context first to 
 Only use FINAL("answer") after you have found concrete evidence in the context.
 If you need to return a variable via FINAL_VAR(name), assign it on globalThis (e.g., globalThis.result = value).
 
-Depth: ${depth}`;
+Depth: ${depth}
+${ingestion?.truncated ? `
+INGESTION: Context was truncated before analysis.
+- Original size: ${ingestion.originalChars.toLocaleString()} characters
+- Retained size: ${ingestion.retainedChars.toLocaleString()} characters
+- Mode: ${ingestion.oversizeMode}` : ""}`;
 };
 
 export const buildUserPrompt = (query: string): string => query;

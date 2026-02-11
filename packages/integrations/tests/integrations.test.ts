@@ -27,4 +27,20 @@ describe("integrations", () => {
     const result = await tool.run({ query: "Q", context: "C" });
     expect(result).toBe("Answer");
   });
+
+  test("deepagents resolves contextRef", async () => {
+    const rlm = new RLM({ client: mockClient, model: "test" });
+    const tool = createDeepAgentsTool(rlm, {
+      resolveContextRef: async (ref: string) => `resolved:${ref}`,
+    });
+    const result = await tool.run({ query: "Q", contextRef: "doc-1" });
+    expect(result).toBe("Answer");
+  });
+
+  test("deepagents remains backward compatible", async () => {
+    const rlm = new RLM({ client: mockClient, model: "test" });
+    const tool = createDeepAgentsTool(rlm);
+    const result = await tool.run({ query: "Q", context: "C" });
+    expect(result).toBe("Answer");
+  });
 });

@@ -30,12 +30,34 @@ export const createLangGraphNode = (rlm: RLM) => {
   };
 };
 
-export const createDeepAgentsTool = (rlm: RLM, name = "recursive_llm", description = "Recursive LLM tool") => {
+export type DeepAgentsToolInput = {
+  query?: string;
+  context?: string;
+  contextRef?: string;
+};
+
+export type DeepAgentsToolOptions = {
+  resolveContextRef?: (ref: string) => Promise<string>;
+  name?: string;
+  description?: string;
+};
+
+export const createDeepAgentsTool = (rlm: RLM, options: DeepAgentsToolOptions = {}) => {
+  const name = options.name ?? "recursive_llm";
+  const description = options.description ?? "Recursive LLM tool";
+
   return {
     name,
     description,
-    async run(input: { query?: string; context?: string }) {
-      return rlm.acomplete(input.query ?? "", input.context ?? "");
+    async run(input: DeepAgentsToolInput) {
+      const query = input.query ?? "";
+      let context = input.context ?? "";
+
+      if (!input.context && input.contextRef && options.resolveContextRef) {
+        context = await options.resolveContextRef(input.contextRef);
+      }
+
+      return rlm.acomplete(query, context);
     },
   };
 };

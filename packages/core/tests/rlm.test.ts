@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { createExecutor } from "@rlm/sandbox";
-import { MaxDepthError, MaxIterationsError, RLM, RLMError } from "../src/rlm";
+import { ContextTooLargeError, MaxDepthError, MaxIterationsError, RLM, RLMError } from "../src/rlm";
 import type { LLMClient, LLMRequest } from "../src/types";
 
 const executor = createExecutor({ forceVm: true });
@@ -68,6 +68,28 @@ describe("RLM core", () => {
     const rlm = new RLM({ client, model: "expensive", recursiveModel: "cheap" }, executor);
     await rlm.acomplete("Test", "Context");
     expect(client.calls[0]?.model).toBe("expensive");
+  });
+
+  test("context over limit truncates in default mode", async () => {
+    const client = new MockClient(["FINAL(\"Done\")"]);
+    const rlm = new RLM({ client, model: "test-model", ingestion: { maxContextChars: 10 } }, executor);
+    await rlm.acomplete("Q", "abcdefghijklmnop");
+    const systemPrompt = String(client.calls[0]?.messages[0]?.content ?? "");
+    expect(systemPrompt).toContain("Size: 10 characters");
+    expect(systemPrompt).toContain("INGESTION: Context was truncated before analysis.");
+  });
+
+  test("context over limit with error mode throws", async () => {
+    const client = new MockClient(["FINAL(\"Done\")"]);
+    const rlm = new RLM(
+      {
+        client,
+        model: "test-model",
+        ingestion: { maxContextChars: 10, oversizeMode: "error" },
+      },
+      executor,
+    );
+    await expect(rlm.acomplete("Q", "abcdefghijklmnop")).rejects.toBeInstanceOf(ContextTooLargeError);
   });
 
   test("complete throws with guidance", () => {
